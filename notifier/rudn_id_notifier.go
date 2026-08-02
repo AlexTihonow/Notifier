@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -89,9 +90,12 @@ func (s *PushSender) send(recipients []string, subject string, body string) erro
 
 	return lastErr
 }
-// time-out 10 секунд
+
 func (s *PushSender) doRequest(payload []byte) (bool, error) {
-	request, err := http.NewRequest(http.MethodPost, "https://push.rudn.ru/api/v1/push", bytes.NewReader(payload))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://push.rudn.ru/api/v1/push", bytes.NewReader(payload))
 	if err != nil {
 		return false, err
 	}
@@ -102,7 +106,6 @@ func (s *PushSender) doRequest(payload []byte) (bool, error) {
 
 	response, err := s.client.Do(request)
 	if err != nil {
-
 		return true, fmt.Errorf("запрос к api не прошёл: %w", err)
 	}
 	defer response.Body.Close()
