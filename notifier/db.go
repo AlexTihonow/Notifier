@@ -18,10 +18,10 @@ type Mailing struct {
 
 func openDB(conf Config) (*sql.DB, error){
 	cfg := mysql.Config{
-		User:   conf.DB_User,
-		Passwd: conf.DB_Pass,
-		Addr:   conf.DB_Address,
-		DBName: conf.DB_Name,
+		User:   conf.DbUser,
+		Passwd: conf.DbPass,
+		Addr:   conf.DbAddress,
+		DBName: conf.DbName,
 		Net:    "tcp",
 		AllowNativePasswords: true,
 	}
