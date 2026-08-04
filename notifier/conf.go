@@ -15,10 +15,10 @@ type Config struct {
 	RudnAPIKey      string
 	RudnClientLogin string
 
-	DB_User 		string
-	DB_Address 		string
-	DB_Name 		string
-	DB_Pass			string
+	DbUser 			string
+	DbAddress 		string
+	DbName 			string
+	DbPass			string
 }
 
 func loadConfig() (Config, error) {
@@ -47,10 +47,10 @@ func loadConfig() (Config, error) {
 		RudnAPIKey:      v.GetString("X_API_KEY"),
 		RudnClientLogin: v.GetString("X_CLIENT_LOGIN"),
 
-		DB_User:      	v.GetString("DB_USER"),
-		DB_Address: 	v.GetString("DB_ADDRESS"),
-		DB_Name: 		v.GetString("DB_NAME"),
-		DB_Pass: 		v.GetString("DB_PASSWORD")
+		DbUser:      	v.GetString("DB_USER"),
+		DbAddress: 		v.GetString("DB_ADDRESS"),
+		DbName: 		v.GetString("DB_NAME"),
+		DbPass: 		v.GetString("DB_PASSWORD")
 	}
 
 	return cfg, nil
