@@ -72,11 +72,14 @@ func runWorker(db *sql.DB, cfg config.Config, stop chan struct{}) {
 
 func pollLoop(db *sql.DB, cfg config.Config, stop chan struct{}, id int) {
 	log := slog.With("worker", id)
-	
+
+	mlr, _ := newMailer(cfg)
+	defer mlr.close()
+
 	idle := false
 
 	for {
-		did, err := processBatch(db, cfg, log)
+		did, err := processBatch(db, cfg, mlr, log)
 
 		if did {
 			idle = false
@@ -97,6 +100,7 @@ func pollLoop(db *sql.DB, cfg config.Config, stop chan struct{}, id int) {
 			}
 			idle = true
 		}
+
 		select {
 		case <-stop:
 			return
@@ -105,7 +109,7 @@ func pollLoop(db *sql.DB, cfg config.Config, stop chan struct{}, id int) {
 	}
 }
 
-func processBatch(db *sql.DB, cfg config.Config, log *slog.Logger) (bool, error) {
+func processBatch(db *sql.DB, cfg config.Config, mlr *mailer, log *slog.Logger) (bool, error) {
 	batch, err := takePendingBatch(db, batchSize)
 	if err != nil {
 		return false, err
@@ -141,7 +145,7 @@ func processBatch(db *sql.DB, cfg config.Config, log *slog.Logger) (bool, error)
 		wg.Add(1)
 		go func(m Mailing) {
 			defer wg.Done()
-			processEmail(db, cfg, m, log)
+			processEmail(db, m, mlr, log.With("id", m.ID, "target", "email"))
 		}(m)
 	}
 
@@ -149,7 +153,7 @@ func processBatch(db *sql.DB, cfg config.Config, log *slog.Logger) (bool, error)
 		wg.Add(1)
 		go func(m Mailing) {
 			defer wg.Done()
-			processPush(db, cfg, m, log)
+			processPush(db, cfg, m, log.With("id", m.ID, "target", "rudn_id"))
 		}(m)
 	}
 
@@ -157,7 +161,7 @@ func processBatch(db *sql.DB, cfg config.Config, log *slog.Logger) (bool, error)
 	return true, nil
 }
 
-func processEmail(db *sql.DB, cfg config.Config, m Mailing, log *slog.Logger) {
+func processEmail(db *sql.DB, m Mailing, mlr *mailer, log *slog.Logger) {
 	recipients := splitRecipients(m.Recipients)
 	if len(recipients) == 0 {
 		log.Warn("нет подходящих адресов")
@@ -169,7 +173,7 @@ func processEmail(db *sql.DB, cfg config.Config, m Mailing, log *slog.Logger) {
 	var failed []string
 
 	for _, address := range recipients {
-		if err := send(cfg, address, m.Subject, m.Body); err != nil {
+		if err := mlr.send(address, m.Subject, m.Body); err != nil {
 			log.Error("не удалось отправить письмо", "to", address, "err", err)
 			failed = append(failed, address)
 			continue

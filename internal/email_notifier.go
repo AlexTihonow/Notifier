@@ -3,36 +3,30 @@ package notifier
 import (
 	"time"
 	"crypto/tls"
+	"fmt"
+	"sync"
 	mail "github.com/xhit/go-simple-mail/v2"
 	"strings"
 	"my-mailer/internal/config"
 )
 
-func send (conf config.Config, to string, subject string, body string) error {
-	var lastErr error
-
-	for attempt := 1; attempt <= 3; attempt++ {
-		err := sendOnce(conf, to, subject, body)
-		if err == nil {
-			return nil
-		}
-		lastErr = err
-
-		if attempt < 3 {
-			time.Sleep(time.Duration(attempt) * 2 * time.Second)
-		}
-	}
-
-	return lastErr
+type mailer struct {
+	cfg    config.Config
+	mu     sync.Mutex
+	client *mail.SMTPClient
 }
 
-func sendOnce (conf config.Config, to string, subject string, body string) error {
+func newMailer(cfg config.Config) (*mailer, error) {
+	return &mailer{cfg: cfg}, nil
+}
+
+func connect(cfg config.Config) (*mail.SMTPClient, error) {
 	server := mail.NewSMTPClient()
 
-	server.Host = conf.EmailHost
-	server.Port = conf.EmailPort
-	server.Username = conf.EmailUsername
-	server.Password = conf.EmailPassword
+	server.Host = cfg.EmailHost
+	server.Port = cfg.EmailPort
+	server.Username = cfg.EmailUsername
+	server.Password = cfg.EmailPassword
 	server.Encryption = mail.EncryptionSSLTLS
 
 	server.KeepAlive = true
@@ -43,14 +37,57 @@ func sendOnce (conf config.Config, to string, subject string, body string) error
 
 	server.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
-	smtpClient,err := server.Connect()
+	return server.Connect()
+}
 
+func (m *mailer) close() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.client != nil {
+		m.client.Close()
+		m.client = nil
+	}
+}
+
+func (m *mailer) ensure() (*mail.SMTPClient, error) {
+	if m.client != nil {
+		return m.client, nil
+	}
+	client, err := connect(m.cfg)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	m.client = client
+	return m.client, nil
+}
+
+func (m *mailer) send(to, subject, body string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	client, err := m.ensure()
+	if err != nil {
+		return fmt.Errorf("подключение к SMTP не удалось: %w", err)
 	}
 
+	if err := m.trySend(client, to, subject, body); err == nil {
+		return nil
+	} else {
+		if m.client != nil {
+			m.client.Close()
+			m.client = nil
+		}
+		client, cerr := m.ensure()
+		if cerr != nil {
+			return fmt.Errorf("переподключение к SMTP не удалось: %w (исходная: %v)", cerr, err)
+		}
+		return m.trySend(client, to, subject, body)
+	}
+}
+
+func (m *mailer) trySend(client *mail.SMTPClient, to, subject, body string) error {
 	email := mail.NewMSG()
-	email.SetFrom(conf.EmailFrom).
+	email.SetFrom(m.cfg.EmailFrom).
 		AddTo(to).
 		SetSubject(subject)
 
@@ -58,16 +95,10 @@ func sendOnce (conf config.Config, to string, subject string, body string) error
 
 	email.SetDSN([]mail.DSN{mail.SUCCESS, mail.FAILURE}, false)
 
-	if email.Error != nil{
+	if email.Error != nil {
 		return email.Error
 	}
-
-	err = email.Send(smtpClient)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return email.Send(client)
 }
 
 func splitRecipients(value string) []string {
