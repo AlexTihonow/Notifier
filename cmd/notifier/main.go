@@ -1,16 +1,18 @@
 package main
 
 import (
-	"log"
+	"log/slog"
+	"os"
 
 	notifier "my-mailer/internal"
-	"my-mailer/internal/configs"
+	"my-mailer/internal/config"
 )
 
 func main () {
-	conf, err := configs.LoadConfig()
+	conf, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("ошибка настроек: %v", err)
+		slog.Error("ошибка настроек:", "err", err)
+		os.Exit(1)
 	}
 
 	notifier.Run(conf)

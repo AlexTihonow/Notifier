@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"my-mailer/internal/configs"
+	"my-mailer/internal/config"
 )
 
 type pushRequest struct {
@@ -34,11 +34,11 @@ type pushMessage struct {
 }
 
 type PushSender struct {
-	cfg    configs.Config
+	cfg    config.Config
 	client *http.Client
 }
 
-func newPushSender(cfg configs.Config) *PushSender {
+func newPushSender(cfg config.Config) *PushSender {
 	return &PushSender{
 		cfg:    cfg,
 		client: &http.Client{Timeout: 20 * time.Second},

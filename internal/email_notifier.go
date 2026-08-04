@@ -1,15 +1,14 @@
 package notifier
 
 import (
-	"log"
 	"time"
 	"crypto/tls"
 	mail "github.com/xhit/go-simple-mail/v2"
 	"strings"
-	"my-mailer/internal/configs"
+	"my-mailer/internal/config"
 )
 
-func send (conf configs.Config, to string, subject string, body string) error {
+func send (conf config.Config, to string, subject string, body string) error {
 	var lastErr error
 
 	for attempt := 1; attempt <= 3; attempt++ {
@@ -27,7 +26,7 @@ func send (conf configs.Config, to string, subject string, body string) error {
 	return lastErr
 }
 
-func sendOnce (conf configs.Config, to string, subject string, body string) error {
+func sendOnce (conf config.Config, to string, subject string, body string) error {
 	server := mail.NewSMTPClient()
 
 	server.Host = conf.EmailHost
@@ -66,8 +65,6 @@ func sendOnce (conf configs.Config, to string, subject string, body string) erro
 	err = email.Send(smtpClient)
 	if err != nil {
 		return err
-	} else {
-		log.Println("Письмо отправлено")
 	}
 
 	return nil

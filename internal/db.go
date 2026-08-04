@@ -6,7 +6,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"time"
 	"strings"
-	"my-mailer/internal/configs"
+	"my-mailer/internal/config"
 )
 
 type Mailing struct {
@@ -17,7 +17,7 @@ type Mailing struct {
 	Target     string
 }
 
-func OpenDB(conf configs.Config) (*sql.DB, error){
+func OpenDB(conf config.Config) (*sql.DB, error){
 	cfg := mysql.Config{
 		User:   conf.DbUser,
 		Passwd: conf.DbPass,
