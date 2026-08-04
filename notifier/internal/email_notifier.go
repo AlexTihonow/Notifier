@@ -1,4 +1,4 @@
-package main
+package notifier
 
 import (
 	"log"
@@ -6,9 +6,10 @@ import (
 	"crypto/tls"
 	mail "github.com/xhit/go-simple-mail/v2"
 	"strings"
+	"my-mailer/internal/configs"
 )
 
-func send (conf Config, to string, subject string, body string) error {
+func send (conf configs.Config, to string, subject string, body string) error {
 	var lastErr error
 
 	for attempt := 1; attempt <= 3; attempt++ {
@@ -26,7 +27,7 @@ func send (conf Config, to string, subject string, body string) error {
 	return lastErr
 }
 
-func sendOnce (conf Config, to string, subject string, body string) error {
+func sendOnce (conf configs.Config, to string, subject string, body string) error {
 	server := mail.NewSMTPClient()
 
 	server.Host = conf.EmailHost

@@ -1,4 +1,4 @@
-package main
+package configs
 
 import (
 	"github.com/spf13/viper"
@@ -21,7 +21,7 @@ type Config struct {
 	DbPass			string
 }
 
-func loadConfig() (Config, error) {
+func LoadConfig() (Config, error) {
 
 	v := viper.New()
 
@@ -50,7 +50,7 @@ func loadConfig() (Config, error) {
 		DbUser:      	v.GetString("DB_USER"),
 		DbAddress: 		v.GetString("DB_ADDRESS"),
 		DbName: 		v.GetString("DB_NAME"),
-		DbPass: 		v.GetString("DB_PASSWORD")
+		DbPass: 		v.GetString("DB_PASSWORD"),
 	}
 
 	return cfg, nil

@@ -1,4 +1,4 @@
-package main
+package notifier
 
 import (
 	"database/sql"
@@ -6,6 +6,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"time"
 	"strings"
+	"my-mailer/internal/configs"
 )
 
 type Mailing struct {
@@ -16,7 +17,7 @@ type Mailing struct {
 	Target     string
 }
 
-func openDB(conf Config) (*sql.DB, error){
+func OpenDB(conf configs.Config) (*sql.DB, error){
 	cfg := mysql.Config{
 		User:   conf.DbUser,
 		Passwd: conf.DbPass,
